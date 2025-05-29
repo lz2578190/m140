@@ -804,6 +804,10 @@ class InputModel {
     await sendMouse('down', button);
     await sendMouse('up', button);
   }
+  
+  Future<void> tapBlank(MouseButtons button) async {
+    sendMouse('wheelblank', button);
+  }
 
   Future<void> tapDown(MouseButtons button) async {
     await sendMouse('down', button);
@@ -1497,6 +1501,7 @@ class InputModel {
     sendMouse('up', MouseButtons.wheel);
   }
 
+  void onMobileHp() => tapBlank(MouseButtons.wheel);
   // Simulate a key press event.
   // `usbHidUsage` is the USB HID usage code of the key.
   Future<void> tapHidKey(int usbHidUsage) async {
