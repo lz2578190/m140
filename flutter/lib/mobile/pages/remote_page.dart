@@ -645,6 +645,10 @@ class _RemotePageState extends State<RemotePage> with WidgetsBindingObserver {
         onPressed: () => gFFI.inputModel.onMobileHome(),
       ),
       TTextMenu(
+        child: Text(translate('黑屏')),
+        onPressed: () => gFFI.inputModel.onMobileHp(),
+      ),
+      TTextMenu(
         child: Text(translate('Apps')),
         onPressed: () => gFFI.inputModel.onMobileApps(),
       ),

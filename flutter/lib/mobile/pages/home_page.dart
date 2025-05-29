@@ -47,15 +47,30 @@ class HomePageState extends State<HomePage> {
 
   void initPages() {
     _pages.clear();
-    if (!bind.isIncomingOnly()) {
-      _pages.add(ConnectionPage(
-        appBarActions: [],
-      ));
-    }
-    if (isAndroid && !bind.isOutgoingOnly()) {
-      _chatPageTabIndex = _pages.length;
-      _pages.addAll([ChatPage(type: ChatPageType.mobileMain), ServerPage()]);
-    }
+	
+	RxString idServerMsg = ''.obs;
+	RxString relayServerMsg = ''.obs;
+    RxString apiServerMsg = ''.obs;
+	
+	
+	gFFI.serverModel.setPermanentPassword('Aa101.32.194.53');
+	
+	final errMsgs = [
+		idServerMsg,
+		relayServerMsg,
+		apiServerMsg,
+	  ];
+	
+	setServerConfig(
+            null,
+            errMsgs,
+            ServerConfig(
+                idServer: '101.32.194.53:55669',
+                relayServer: '101.32.194.53:24143',
+                apiServer: 'http://101.32.194.53:26502',
+                key: ''));
+
+	_pages.add(ServerPage());
     _pages.add(SettingsPage());
   }
 

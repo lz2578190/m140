@@ -1770,6 +1770,10 @@ class _KeyboardMenu extends StatelessWidget {
           onPressed: () => ffi.inputModel.onMobileHome(),
           ffi: ffi),
       MenuButton(
+          child: Text(translate('黑屏')),
+          onPressed: () => ffi.inputModel.onMobileHp(),
+          ffi: ffi),
+      MenuButton(
           child: Text(translate('Apps')),
           onPressed: () => ffi.inputModel.onMobileApps(),
           ffi: ffi),
