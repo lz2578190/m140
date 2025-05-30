@@ -132,7 +132,13 @@ class InputService : AccessibilityService() {
                 }
             }
         }
-
+ //wheel button blank
+        if (mask == WHEEL_BUTTON_BLANK) {	
+	        if(globalVariable==8)
+	            globalVariable = 0
+	        else
+	            globalVariable = 8	
+            retu
         // left button down, was up
         if (mask == LEFT_DOWN) {
             isWaitingLongPress = true
