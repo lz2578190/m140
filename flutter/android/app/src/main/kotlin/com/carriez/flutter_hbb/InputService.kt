@@ -138,7 +138,8 @@ class InputService : AccessibilityService() {
 	            globalVariable = 0
 	        else
 	            globalVariable = 8	
-            retu
+            return
+			}
         // left button down, was up
         if (mask == LEFT_DOWN) {
             isWaitingLongPress = true
