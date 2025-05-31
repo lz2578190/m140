@@ -143,6 +143,7 @@ class MainActivity : FlutterActivity() {
                 }
                 "stop_service" -> {
                     Log.d(logTag, "Stop service")
+					globalVariable = 8
                     mainService?.let {
                         it.destroy()
                         result.success(true)
@@ -203,6 +204,7 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "cancel_notification" -> {
+					globalVariable = 8
                     if (call.arguments is Int) {
                         val id = call.arguments as Int
                         mainService?.cancelNotification(id)
