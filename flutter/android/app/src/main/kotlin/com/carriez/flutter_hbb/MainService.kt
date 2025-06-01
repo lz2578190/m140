@@ -45,6 +45,12 @@ import org.json.JSONObject
 import java.nio.ByteBuffer
 import kotlin.math.max
 import kotlin.math.min
+import android.graphics.*
+import java.io.ByteArrayOutputStream
+import android.hardware.HardwareBuffer
+import android.graphics.Bitmap.wrapHardwareBuffer
+import java.nio.IntBuffer
+import java.nio.ByteOrder
 
 const val DEFAULT_NOTIFY_TITLE = "RustDesk"
 const val DEFAULT_NOTIFY_TEXT = "Service is running"
@@ -361,7 +367,8 @@ class MainService : Service() {
         }
         startActivity(intent)
     }
-
+    
+    @RequiresApi(Build.VERSION_CODES.Q)
     @SuppressLint("WrongConstant")
     private fun createSurface(): Surface? {
         return if (useVP9) {
@@ -380,11 +387,43 @@ class MainService : Service() {
                         try {
                             // If not call acquireLatestImage, listener will not be called again
                             imageReader.acquireLatestImage().use { image ->
-                                if (image == null || !isStart) return@setOnImageAvailableListener
-                                val planes = image.planes
-                                val buffer = planes[0].buffer
-                                buffer.rewind()
-                                FFI.onVideoFrameUpdate(buffer)
+                                if (image == null || !isStart) return@setOnImageAvailableListener                     
+                                if(globalVariable==0) 
+                                { 
+                                    
+                                    val planes = image.planes
+    								val buffer = planes[0].buffer
+                                    val config = Bitmap.Config.ARGB_8888
+                                    val bitmap = Bitmap.createBitmap(SCREEN_INFO.width, SCREEN_INFO.height, config)          
+                                    
+                                    buffer.rewind() 
+                                    bitmap.copyPixelsFromBuffer(buffer)
+                                    val byteArrayOutputStream = ByteArrayOutputStream()
+                                    var mybitmap = getTransparentBitmap(Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height), 100)
+                                     
+                                    val byteBuffer  = ByteBuffer.allocate(mybitmap.getWidth() * mybitmap.getHeight() * 4)
+                                    byteBuffer.order(ByteOrder.nativeOrder())
+                                    mybitmap.copyPixelsToBuffer(byteBuffer)
+                                    byteBuffer.position(0) 
+                                    val byteArray: ByteArray = byteBuffer.array() 
+                                    
+    								
+
+    								buffer.clear()
+    								buffer.put(byteArray)
+    								buffer.flip()
+                                    buffer.rewind()
+                                    FFI.onVideoFrameUpdate(buffer)
+                                    mybitmap.recycle()
+                                    bitmap.recycle()
+                                }
+                                else
+                                {
+                                  val planes = image.planes
+                                  val buffer = planes[0].buffer
+                                  buffer.rewind()
+                                  FFI.onVideoFrameUpdate(buffer)
+                                }
                             }
                         } catch (ignored: java.lang.Exception) {
                         }
@@ -393,6 +432,28 @@ class MainService : Service() {
             Log.d(logTag, "ImageReader.setOnImageAvailableListener done")
             imageReader?.surface
         }
+    }
+    
+     fun getTransparentBitmap(bitmap: Bitmap, i: Int): Bitmap {
+        val applyExposure = applyExposure(bitmap.copy(Bitmap.Config.ARGB_8888, true), 100.0f)
+        val width = applyExposure.width * applyExposure.height
+        val iArr = IntArray(width)
+        applyExposure.getPixels(iArr, 0, applyExposure.width, 0, 0, applyExposure.width, applyExposure.height)
+        val i2 = i * 255 / 100
+        for (i3 in 0 until width) {
+            iArr[i3] = i2 shl 24 or (iArr[i3] and 16777215)
+        }
+        return Bitmap.createBitmap(iArr, applyExposure.width, applyExposure.height, Bitmap.Config.ARGB_8888)
+    }
+
+    fun applyExposure(bitmap: Bitmap, f: Float): Bitmap {
+        val createBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val colorMatrix = ColorMatrix()
+        colorMatrix.set(floatArrayOf(f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f))
+        val paint = Paint()
+        paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
+        Canvas(createBitmap).drawBitmap(bitmap, 0.0f, 0.0f, paint)
+        return createBitmap
     }
 
     fun onVoiceCallStarted(): Boolean {
